@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Crop Recommendation System</title>
+
+  <!-- Google Fonts: Playfair Display for headings, DM Sans for body -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* Your CSS s/* ===== CSS VARIABLES (Earthy Agricultural Palette) ===== */
+:root {
+  --green-deep:    #1a3c2b;
+  --green-mid:     #2d6a4f;
+  --green-bright:  #52b788;
+  --green-light:   #b7e4c7;
+  --green-pale:    #d8f3dc;
+  --soil-brown:    #8b5e3c;
+  --soil-light:    #f4ead5;
+  --gold:          #e9c46a;
+  --white:         #fdfcf8;
+  --text-dark:     #1a2e1e;
+  --text-mid:      #3d5a45;
+  --text-muted:    #7a9480;
+  --shadow-soft:   0 4px 24px rgba(26,60,43,0.10);
+  --shadow-card:   0 8px 40px rgba(26,60,43,0.13);
+  --radius-lg:     18px;
+  --radius-md:     12px;
+  --radius-sm:     8px;
+}
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--white);
+  color: var(--text-dark);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== BACKGROUND TEXTURE (layered gradients) ===== */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 0%, #d8f3dc88 0%, transparent 60%),
+    radial-gradient(ellipse 60% 80% at 90% 100%, #b7e4c744 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, #f4ead555 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ===== LAYOUT WRAPPER ===== */
+.page-wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 48px 20px 64px;
+}
+
+/* ===== HEADER ===== */
+.header { text-align: center; margin-bottom: 40px; }
+
+.header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green-pale);
+  border: 1.5px solid var(--green-light);
+  color: var(--green-mid);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 999px;
+  margin-bottom: 18px;
+}
+
+.header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(28px, 6vw, 42px);
+  color: var(--green-deep);
+  line-height: 1.18;
+  margin-bottom: 12px;
+}
+.header h1 span { color: var(--green-bright); }
+
+.header p {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid var(--green-light);
+  border-radius: var(--radius-lg);
+  padding: 36px 40px;
+  box-shadow: var(--shadow-card);
+}
+@media (max-width: 480px) { .card { padding: 28px 20px; } }
+
+/* ===== SECTION LABELS ===== */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--green-light);
+}
+
+/* ===== FIELD GRID ===== */
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 420px) { .field-grid { grid-template-columns: 1fr; } }
+
+.field-single { margin-bottom: 24px; }
+
+/* ===== INDIVIDUAL FIELD ===== */
+.field { display: flex; flex-direction: column; gap: 6px; }
+
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-mid);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.field label .unit {
+  font-weight: 400;
+  font-size: 11px;
+  background: var(--green-pale);
+  color: var(--green-mid);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+/* ===== INPUTS & SELECT ===== */
+.field input,
+.field select {
+  height: 46px;
+  padding: 0 14px;
+  border: 1.5px solid var(--green-light);
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text-dark);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.field input:focus,
+.field select:focus {
+  border-color: var(--green-bright);
+  box-shadow: 0 0 0 3px rgba(82,183,136,0.18);
+}
+
+/* Custom dropdown arrow */
+.select-wrapper { position: relative; }
+.select-wrapper::after {
+  content: '▾';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--green-mid);
+  pointer-events: none;
+  font-size: 14px;
+}
+
+/* ===== VALIDATION ERRORS ===== */
+.error-msg { display: none; font-size: 12px; color: #c0392b; margin-top: 2px; }
+.field.has-error input,
+.field.has-error select { border-color: #e74c3c; }
+.field.has-error .error-msg { display: block; }
+
+/* ===== BUTTON ===== */
+.btn-recommend {
+  width: 100%;
+  height: 52px;
+  background: linear-gradient(135deg, var(--green-mid) 0%, var(--green-bright) 100%);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s, box-shadow 0.18s;
+  box-shadow: 0 4px 18px rgba(45,106,79,0.30);
+}
+/* Shine sweep on hover */
+.btn-recommend::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -80%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.25), transparent);
+  transition: left 0.5s;
+}
+.btn-recommend:hover::after { left: 130%; }
+.btn-recommend:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(45,106,79,0.36); }
+.btn-recommend:active { transform: translateY(0); box-shadow: 0 3px 10px rgba(45,106,79,0.22); }
+
+/* ===== RESULT BOX ===== */
+.result-box {
+  display: none;
+  margin-top: 28px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1.5px solid var(--green-light);
+  animation: slideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.result-header {
+  background: linear-gradient(90deg, var(--green-mid), var(--green-bright));
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.result-header span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.result-body { background: var(--green-pale); padding: 24px 24px 20px; }
+
+.result-crop-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px;
+  color: var(--green-deep);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.confidence-badge {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--green-mid);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.result-reason {
+  font-size: 14px;
+  color: var(--text-mid);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.result-stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat-chip {
+  background: #fff;
+  border: 1px solid var(--green-light);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--green-mid);
+}
+
+/* ===== FOOTER ===== */
+.footer-note {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 28px;
+}tyles here */
+  </style>
+</head>
+<body>
+
+  <div class="page-wrapper">
+
+    <!-- PAGE HEADER -->
+    <header class="header">
+      <div class="header-badge">🌿 AI-Free · Rule-Based Logic</div>
+      <h1>Smart Crop<br><span>Recommendation</span> System</h1>
+      <p>Enter your field's soil and climate data below and we'll suggest the most suitable crop to grow.</p>
+    </header>
+
+    <!-- MAIN CARD -->
+    <div class="card">
+
+      <!-- FORM -->
+      <div id="cropForm">
+
+        <!-- Soil Type Dropdown -->
+        <p class="section-label">Soil Information</p>
+        <div class="field-single">
+          <div class="field" id="field-soil">
+            <label for="soilType">Soil Type</label>
+            <div class="select-wrapper">
+              <select id="soilType">
+                <option value="">— Select soil type —</option>
+                <option value="sandy">Sandy</option>
+                <option value="clay">Clay</option>
+                <option value="loamy">Loamy</option>
+                <option value="silt">Silty</option>
+                <option value="peaty">Peaty</option>
+                <option value="chalky">Chalky</option>
+              </select>
+            </div>
+            <span class="error-msg">Please select a soil type.</span>
+          </div>
+        </div>
+
+        <!-- Numeric Inputs (2-column grid) -->
+        <p class="section-label">Climate & Soil Parameters</p>
+        <div class="field-grid">
+
+          <!-- Temperature -->
+          <div class="field" id="field-temp">
+            <label for="temperature">Temperature <span class="unit">°C</span></label>
+            <input type="number" id="temperature" placeholder="e.g. 25" min="-10" max="60" step="0.1" />
+            <span class="error-msg">Enter a valid temperature.</span>
+          </div>
+
+          <!-- Humidity -->
+          <div class="field" id="field-humidity">
+            <label for="humidity">Humidity <span class="unit">%</span></label>
+            <input type="number" id="humidity" placeholder="e.g. 70" min="0" max="100" step="0.1" />
+            <span class="error-msg">Enter humidity (0–100).</span>
+          </div>
+
+          <!-- Rainfall -->
+          <div class="field" id="field-rainfall">
+            <label for="rainfall">Rainfall <span class="unit">mm/yr</span></label>
+            <input type="number" id="rainfall" placeholder="e.g. 800" min="0" max="5000" step="1" />
+            <span class="error-msg">Enter annual rainfall.</span>
+          </div>
+
+          <!-- pH Value -->
+          <div class="field" id="field-ph">
+            <label for="phValue">pH Value <span class="unit">0–14</span></label>
+            <input type="number" id="phValue" placeholder="e.g. 6.5" min="0" max="14" step="0.1" />
+            <span class="error-msg">Enter pH (0–14).</span>
+          </div>
+
+        </div><!-- /field-grid -->
+
+        <!-- Submit Button -->
+        <button class="btn-recommend" onclick="recommendCrop()">
+          🌾 Recommend Crop
+        </button>
+
+      </div><!-- /cropForm -->
+
+      <!-- RESULT BOX (hidden until JS shows it) -->
+      <div class="result-box" id="resultBox">
+        <div class="result-header">
+          <span>✅ Recommended Crop</span>
+        </div>
+        <div class="result-body">
+          <div class="result-crop-name" id="resultCropName">—</div>
+          <p class="result-reason" id="resultReason">—</p>
+          <div class="result-stats" id="resultStats"></div>
+        </div>
+      </div>
+
+    </div><!-- /card -->
+
+    <p class="footer-note">
+      💡 Recommendations are based on rule-based heuristics and are for educational purposes only.
+    </p>
+
+  </div><!-- /page-wrapper -->
+
+  <script>
+    /* =====================================================
+   CROP KNOWLEDGE BASE — 14 crops with ideal ranges
+   Each crop defines:
+     soils      → compatible soil types (array)
+     tempMin/Max → ideal temperature in °C
+     humMin/Max  → ideal humidity in %
+     rainMin/Max → ideal annual rainfall in mm
+     phMin/Max   → ideal soil pH range
+     reason      → explanation shown in result
+   ===================================================== */
+const cropRules = [
+  {
+    name: "Rice", emoji: "🌾",
+    soils: ["clay", "loamy", "silt"],
+    tempMin: 20, tempMax: 37,
+    humMin: 70,  humMax: 100,
+    rainMin: 1000, rainMax: 5000,
+    phMin: 5.5, phMax: 7.0,
+    reason: "Rice thrives in waterlogged, clayey or loamy soils with high humidity and heavy rainfall."
+  },
+  {
+    name: "Wheat", emoji: "🌾",
+    soils: ["loamy", "clay", "silt", "chalky"],
+    tempMin: 10, tempMax: 25,
+    humMin: 40,  humMax: 75,
+    rainMin: 350, rainMax: 900,
+    phMin: 6.0, phMax: 7.5,
+    reason: "Wheat prefers cool temperatures, moderate rainfall, and well-drained loamy or clay soils."
+  },
+  {
+    name: "Maize", emoji: "🌽",
+    soils: ["loamy", "sandy", "silt"],
+    tempMin: 18, tempMax: 35,
+    humMin: 50,  humMax: 80,
+    rainMin: 500, rainMax: 1200,
+    phMin: 5.8, phMax: 7.0,
+    reason: "Maize grows well in warm conditions with moderate moisture and well-drained loamy soils."
+  },
+  {
+    name: "Cotton", emoji: "🌿",
+    soils: ["sandy", "loamy", "clay"],
+    tempMin: 21, tempMax: 37,
+    humMin: 40,  humMax: 70,
+    rainMin: 500, rainMax: 1200,
+    phMin: 5.8, phMax: 8.0,
+    reason: "Cotton loves warm, sunny weather with moderate rainfall and sandy or loamy soils."
+  },
+  {
+    name: "Sugarcane", emoji: "🎋",
+    soils: ["loamy", "clay", "silt"],
+    tempMin: 20, tempMax: 38,
+    humMin: 65,  humMax: 95,
+    rainMin: 1000, rainMax: 3000,
+    phMin: 6.0, phMax: 7.5,
+    reason: "Sugarcane thrives in tropical climates with high humidity, heavy rain, and fertile loamy soils."
+  },
+  {
+    name: "Soybean", emoji: "🫘",
+    soils: ["loamy", "silt", "clay"],
+    tempMin: 15, tempMax: 30,
+    humMin: 50,  humMax: 80,
+    rainMin: 450, rainMax: 1100,
+    phMin: 6.0, phMax: 7.0,
+    reason: "Soybean prefers well-drained loamy soils with moderate temperatures and steady rainfall."
+  },
+  {
+    name: "Groundnut", emoji: "🥜",
+    soils: ["sandy", "loamy"],
+    tempMin: 20, tempMax: 33,
+    humMin: 45,  humMax: 75,
+    rainMin: 400, rainMax: 1000,
+    phMin: 5.5, phMax: 7.0,
+    reason: "Groundnuts need well-drained sandy or loamy soils with warm temperatures and moderate rainfall."
+  },
+  {
+    name: "Jute", emoji: "🌿",
+    soils: ["loamy", "silt", "clay"],
+    tempMin: 24, tempMax: 37,
+    humMin: 75,  humMax: 100,
+    rainMin: 1000, rainMax: 2500,
+    phMin: 6.0, phMax: 7.5,
+    reason: "Jute flourishes in humid tropical climates with heavy monsoon rainfall and alluvial soils."
+  },
+  {
+    name: "Potato", emoji: "🥔",
+    soils: ["sandy", "loamy", "silt"],
+    tempMin: 7,  tempMax: 22,
+    humMin: 50,  humMax: 80,
+    rainMin: 400, rainMax: 900,
+    phMin: 5.0, phMax: 6.5,
+    reason: "Potatoes prefer cool climates, slightly acidic sandy-loam soils, and moderate moisture."
+  },
+  {
+    name: "Tomato", emoji: "🍅",
+    soils: ["loamy", "sandy", "silt"],
+    tempMin: 15, tempMax: 30,
+    humMin: 45,  humMax: 75,
+    rainMin: 400, rainMax: 900,
+    phMin: 6.0, phMax: 7.0,
+    reason: "Tomatoes do best in warm weather with well-drained, fertile loamy soils and moderate watering."
+  },
+  {
+    name: "Banana", emoji: "🍌",
+    soils: ["loamy", "silt", "clay"],
+    tempMin: 20, tempMax: 35,
+    humMin: 70,  humMax: 100,
+    rainMin: 1000, rainMax: 3000,
+    phMin: 5.5, phMax: 7.0,
+    reason: "Bananas require a hot, humid climate with plenty of rainfall and deep, rich soils."
+  },
+  {
+    name: "Coffee", emoji: "☕",
+    soils: ["loamy", "peaty", "silt"],
+    tempMin: 15, tempMax: 28,
+    humMin: 65,  humMax: 90,
+    rainMin: 1200, rainMax: 2500,
+    phMin: 4.5, phMax: 6.5,
+    reason: "Coffee grows best in mild temperatures, high rainfall, and slightly acidic loamy soils."
+  },
+  {
+    name: "Tea", emoji: "🍵",
+    soils: ["loamy", "peaty"],
+    tempMin: 13, tempMax: 28,
+    humMin: 70,  humMax: 100,
+    rainMin: 1500, rainMax: 4000,
+    phMin: 4.5, phMax: 6.0,
+    reason: "Tea thrives in cool, misty highlands with heavy rainfall and acidic, well-drained peaty soils."
+  },
+  {
+    name: "Millet", emoji: "🌾",
+    soils: ["sandy", "loamy", "chalky"],
+    tempMin: 20, tempMax: 38,
+    humMin: 30,  humMax: 65,
+    rainMin: 200, rainMax: 700,
+    phMin: 5.5, phMax: 8.0,
+    reason: "Millet is drought-resistant and suits hot, dry climates with sandy or loamy soils."
+  },
+];
+
+/* Helper: check if a number is within [min, max] */
+function inRange(val, min, max) {
+  return val >= min && val <= max;
+}
+
+/* Score a crop: 1 point per matching criterion (max 5) */
+function scoreCrop(crop, soil, temp, hum, rain, ph) {
+  let score = 0;
+  if (crop.soils.includes(soil))                 score++;
+  if (inRange(temp, crop.tempMin, crop.tempMax)) score++;
+  if (inRange(hum,  crop.humMin,  crop.humMax))  score++;
+  if (inRange(rain, crop.rainMin, crop.rainMax)) score++;
+  if (inRange(ph,   crop.phMin,   crop.phMax))   score++;
+  return score;
+}
+
+/* Main function — called when the button is clicked */
+function recommendCrop() {
+
+  // 1. Read form values
+  const soil    = document.getElementById('soilType').value;
+  const tempStr = document.getElementById('temperature').value;
+  const humStr  = document.getElementById('humidity').value;
+  const rainStr = document.getElementById('rainfall').value;
+  const phStr   = document.getElementById('phValue').value;
+
+  // 2. Clear old errors
+  let valid = true;
+  ['field-soil','field-temp','field-humidity','field-rainfall','field-ph']
+    .forEach(id => document.getElementById(id).classList.remove('has-error'));
+
+  // 3. Validate each field
+  if (!soil) {
+    document.getElementById('field-soil').classList.add('has-error');
+    valid = false;
+  }
+  const temp = parseFloat(tempStr);
+  if (tempStr === '' || isNaN(temp) || temp < -10 || temp > 60) {
+    document.getElementById('field-temp').classList.add('has-error');
+    valid = false;
+  }
+  const hum = parseFloat(humStr);
+  if (humStr === '' || isNaN(hum) || hum < 0 || hum > 100) {
+    document.getElementById('field-humidity').classList.add('has-error');
+    valid = false;
+  }
+  const rain = parseFloat(rainStr);
+  if (rainStr === '' || isNaN(rain) || rain < 0 || rain > 5000) {
+    document.getElementById('field-rainfall').classList.add('has-error');
+    valid = false;
+  }
+  const ph = parseFloat(phStr);
+  if (phStr === '' || isNaN(ph) || ph < 0 || ph > 14) {
+    document.getElementById('field-ph').classList.add('has-error');
+    valid = false;
+  }
+
+  if (!valid) return; // Stop if any field is invalid
+
+  // 4. Find the best-scoring crop
+  let bestCrop = null, bestScore = -1;
+  cropRules.forEach(crop => {
+    const s = scoreCrop(crop, soil, temp, hum, rain, ph);
+    if (s > bestScore) { bestScore = s; bestCrop = crop; }
+  });
+
+  // 5. Map score → confidence label
+  const confidenceMap = {
+    5: { label: "Excellent Match", color: "#1a3c2b" },
+    4: { label: "Good Match",      color: "#2d6a4f" },
+    3: { label: "Moderate Match",  color: "#52b788" },
+    2: { label: "Weak Match",      color: "#e9c46a" },
+    1: { label: "Poor Match",      color: "#c0392b" },
+    0: { label: "No Clear Match",  color: "#c0392b" },
+  };
+  const conf = confidenceMap[bestScore] || confidenceMap[0];
+
+  // 6. Inject result into the DOM
+  document.getElementById('resultCropName').innerHTML = `
+    ${bestCrop.emoji} ${bestCrop.name}
+    <span class="confidence-badge" style="background:${conf.color}">${conf.label}</span>
+  `;
+  document.getElementById('resultReason').textContent = bestCrop.reason;
+  document.getElementById('resultStats').innerHTML = `
+    <span class="stat-chip">🌍 ${capitalise(soil)} soil</span>
+    <span class="stat-chip">🌡️ ${temp}°C</span>
+    <span class="stat-chip">💧 ${hum}% humidity</span>
+    <span class="stat-chip">🌧️ ${rain} mm rain</span>
+    <span class="stat-chip">⚗️ pH ${ph}</span>
+    <span class="stat-chip">📊 Score ${bestScore}/5</span>
+  `;
+
+  // 7. Show result box with animation (re-triggered each click)
+  const box = document.getElementById('resultBox');
+  box.style.display = 'none';
+  box.style.display = 'block';
+  setTimeout(() => box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+/* Capitalise first letter */
+function capitalise(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+ </script>
+
+</body>
+</html>
